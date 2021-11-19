@@ -11,18 +11,73 @@ const users = [];
 
 function checksExistsUserAccount(request, response, next) {
   // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find((element) => element.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'Invalid username'})
+  }
+
+  request.user = user;
+ 
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
   // Complete aqui
+  const { user } = request;
+
+  if (!user.pro) {
+    if (user.todos.length >= 10) {
+      return response.status(403).json({ error: 'User reached the max todos items for Free Plan' })
+    }
+  }
+
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
   // Complete aqui
+  const { username } = request.headers;
+  const { id }  = request.params;
+  
+  if (!validate(id)) {
+    return response.status(400).json({ error: 'Invalid to-do id'})
+  }
+
+  const user = users.find((item) => item.username === username )
+
+  if (!user) {
+    return response.status(404).json({ error: 'Invalid username'})
+  }
+
+  const todo = user.todos.find((item) => item.id === id )
+
+      
+  if (!todo) {
+    return response.status(404).json({ error: 'To-Do not found'})
+  }
+  
+  request.user = user;
+  request.todo = todo;
+
+  return next();
 }
 
 function findUserById(request, response, next) {
   // Complete aqui
+  const { id } = request.params
+
+  const user = users.find((item) => item.id === id )
+
+  if (!user) {
+    return response.status(404).json({ error: 'User not found'})
+  }
+
+  request.user = user
+
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -67,8 +122,7 @@ app.patch('/users/:id/pro', findUserById, (request, response) => {
 
 app.get('/todos', checksExistsUserAccount, (request, response) => {
   const { user } = request;
-
-  return response.json(user.todos);
+    return response.json(user.todos);
 });
 
 app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (request, response) => {
@@ -84,7 +138,7 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
   };
 
   user.todos.push(newTodo);
-
+  
   return response.status(201).json(newTodo);
 });
 
